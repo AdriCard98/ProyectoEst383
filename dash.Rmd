@@ -1,0 +1,445 @@
+---
+title: "Proyecto EST-383"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(DT)
+library(dplyr)
+library(sparklyr)
+
+#Cargar BaseDatos de mi GITHUB 
+bd<-read.csv("https://github.com/AdriCard98/BaseDatosProyecto/raw/main/EH2017_Vivienda.csv",header=T,sep=";")
+
+#Filtrar variables(Columnas)
+bd<-bd %>% select(2,3,9,10,63,4,34,18,23,32,7,57,59,29,64)
+
+#Renombrar variables(Columnas)
+bd<-bd %>% rename(alquilerMensual=s01a_04, alquilerHipotetico=s01a_05, gastoTelefono=s01a_30, tipoVivienda=s01a_01, basura=s01a_21, origenAgua=s01a_10, gastoAgua=s01a_12, energiaElectrica=s01a_19, adquirirVivienda=s01a_03, tipoConbustible=s01a_25, gastoCombustible=s01a_26, tipoDesague=s01a_16, internet=s01a_31)
+
+#Spark
+sc<-spark_connect(master="local")
+sp<-copy_to(sc,bd,"eh17_vivienda")
+
+```
+
+# Inicio
+## Column {data-width=1000}
+
+### AUTOR: Adriana Cardenas
+Titulo del Proyecto : 'Condicion de viviendas Bolivianas y calidad de vida 2017' <br>
+<br> 2.    OBJETIVOS <br>
+<br> 2.1 Objetivo General <br>
+<br> Extraer información acerca de la condición de vida de hogares en Bolivia utilizando la base de datos de la Encuesta a Hogares 2017, que presenta los resultados de los indicadores obtenidos como ser: porcentajes, promedios y gráficos en Dashboard, dada las características propias de cada vivienda. <br>
+<br> 2.2 Objetivo especifico <br>
+
+•    Determinar el promedio de: gasto mensual de teléfono fijo, gasto mensual en agua, gasto mensual de combustible para cocinar, todo esto según departamento. <br>
+•    Determinar la relación de donde proviene el agua con gasto mensual de servicio de agua, según departamento; relación tipo de vivienda según departamento y relación tipo de vivienda según alquiler mensual. <br>
+•    Determinar la frecuencia del uso de combustible según área y la frecuencia del uso de servicio público de contenedor por departamento. <br>
+
+•    Determinar el porcentaje de: viviendas que usan energía eléctrica según área, viviendas con acceso a internet según área y tipo de desagüe según departamento. <br>
+•    Ilustrar: la relación de donde proviene el agua con gasto mensual de agua, según departamento; relación tipo de vivienda según departamento, tipo de vivienda según alquiler mensual. <br>
+•    Ilustrar: el porcentaje de: viviendas que usan energía eléctrica según área, viviendas con acceso a internet según área y tipo de desagüe según departamento. <br>
+
+
+# 1
+## Column {data-width=800}
+
+### Gasto de alquiler en funcion a los departamentos VS Gasto de alquiler (Hipotetico) en funcion a los departamentos
+
+```{r}
+# 1 y 2
+br<-bd[bd$area==1,c(1,3)] 
+bu<-bd[bd$area==2,c(1,3)]
+brh<-bd[bd$area==1,c(1,4)]
+buh<-bd[bd$area==2,c(1,4)]
+
+graf1<-par(mfrow=c(2,2))
+plot(br, pch=19, cex=1, col="#cc00c0", main="Area RURAL", sub="1-Chuquisaca , 2-La Paz , 3-Cochabamba\n 4-Oruro, 5-Potosi, 6-Tarija \n7-SantaCruz, 8-Beni, 9-Pando",xlab="",ylab = "Gasto de alquiler")
+plot(bu, pch=19, cex=1, col="#cc0055", main="Area URBANA", xlab = "",sub="1-Chuquisaca , 2-La Paz , 3-Cochabamba\n 4-Oruro, 5-Potosi, 6-Tarija \n7-SantaCruz, 8-Beni, 9-Pando",ylab ="Gasto de alquiler")
+plot(brh, pch=19, cex=1, col="#cc00c0", main="Area RURAL(Hipotetico)", xlab = "",sub="1-Chuquisaca , 2-La Paz , 3-Cochabamba\n 4-Oruro, 5-Potosi, 6-Tarija\n7-SantaCruz, 8-Beni, 9-Pando",ylab = "Gasto de alquiler")
+plot(buh, pch=19, cex=1, col="#cc0055", main="Area URBANA(Hipotetico)", xlab = "",sub="1-Chuquisaca , 2-La Paz , 3-Cochabamba\n 4-Oruro, 5-Potosi, 6-Tarija\n7-SantaCruz, 8-Beni, 9-Pando",ylab ="Gasto de alquiler");par(mfrow=c(1,1))
+```
+
+
+## Column {data-width=200}
+
+
+### Descripcion 
+1) Queremos comparar El gasto de alquiler segun departamento con lo que los dueños de vivienda dicen que pagarian hipoteticamente hablando. Asi podemos ver facilmente la diferncia de cuanto pagan con cuanto pagarian segun ellos mismos.
+
+
+# 2
+## Column {data-width=800}
+
+### 'Tipo de vivienda' por departamento
+
+```{r}
+par(mfrow=c(3,3))
+#LaPaz
+lp <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="1")
+hist(lp$tipoVivienda, main="Chuquisaca" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc00c0")
+#SantaCruz
+sc <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="2")
+hist(sc$tipoVivienda, main="La Paz" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc0055")
+
+#3
+bd1 <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="3")
+hist(bd1$tipoVivienda, main="Cochabamba" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc00c0")
+
+#4
+bd2 <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="4")
+hist(bd2$tipoVivienda, main="Oruro" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc0055")
+
+#5
+bd3 <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="5")
+hist(bd3$tipoVivienda, main="Potosi" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc00c0")
+
+#6
+bd4 <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="6")
+hist(bd4$tipoVivienda, main="Tarija" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc0055")
+
+#7
+bd5 <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="7")
+hist(bd5$tipoVivienda, main="SantaCruz" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc00c0")
+
+#8
+bd6 <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="8")
+hist(bd6$tipoVivienda, main="Beni" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc0055")
+
+#9
+bd7 <- bd %>% select(tipoVivienda,depto) %>% filter(depto=="9")
+hist(bd7$tipoVivienda, main="Pando" ,xlab="1-Casa, 2-Choza 3-Dep\n 4-Hab 5-VivImprov, 6-LocalHab", ylab="Frecuencia",col="#cc00c0")
+
+par(mfrow=c(1,1))
+```
+
+## Column {data-width=200}
+
+
+### Descripcion
+2) Dentro de la grafica se puede observar 9  graficas mas pequeñas con la frecuencia del tipo de hogar para cada departamento de Bolivia.
+
+
+# 3
+## Column {data-width=800}
+
+### 'Tipo de vivienda' segun 'Alquiler Mensual'
+
+```{r}
+par(mfrow=c(1,2))
+
+#AREA RURAL
+aux1<-bd %>% select(tipoVivienda, alquilerMensual, area) %>% filter(area=="1")
+plot(aux1$tipoVivienda,aux1$alquilerMensual,main = "Area Urbana", cex=1.2, col="#cc00c0",xlab="1-Casa, 2-choza, 3-Dep\n 4-Hab, 5-VivImporv 6-LocalHab",ylab = "AlquilerMensualVivienda")
+
+#AREA URBANA
+aux2<- bd %>% select(tipoVivienda, alquilerMensual, area) %>% filter(area=="2")
+plot(aux2$tipoVivienda,aux2$alquilerMensual, cex=1.2, col="#cc0055",main = "Area Rural",ylab = "AlquilerMensualVivienda",xlab="1-Casa, 2-choza, 3-Dep\n 4-Hab, 5-VivImporv 6-LocalHab")
+
+par(mfrow=c(1,1))
+```
+
+## Column {data-width=200}
+
+
+### Descripcion
+3) Dos graficas segun tipo de area (Urbana o Rural) que contiene la informacion del tipo de vivienda en funcion al alquiler mensaual que pagan
+
+
+# 4 (Spark)
+## Column {data-width=200}
+
+
+### Descripcion
+4) Grafico de una tabla con el Promedio de gasto mensual por servicio telefonico de todos los departamentos de Bolivia. Ademas incluye en el codigo su ejecucion con la libreria SPARK
+
+## Column {data-width=800}
+
+### Promedio de 'Gasto por servicio telefonico' por departamento
+
+```{r}
+gastosTel<-bd %>% group_by(depto) %>% summarise(mean(gastoTelefono, na.rm=T))
+sp<-bd %>% group_by(depto) %>% summarise(mean(gastoTelefono, na.rm=T))
+
+print("1-Chuquisaca , 2-La Paz , 3-Cochabamba , 4-Oruro, 5-Potosi, 6-Tarija, 7-SantaCruz, 8-Beni, 9-Pando")
+datatable(gastosTel,rownames = F)
+```
+
+
+# 5 (Spark)
+## Column {data-width=200}
+
+
+### Descripcion
+5) Grafico de una tabla con el Promedio de gasto  mensual de agua de todos los departamentos de Bolivia. Ademas incluye en el codigo su ejecucion con la libreria SPARK
+
+
+## Column {data-width=800}
+
+### Promedio de 'gasto mensual de agua' por departamento 
+
+```{r}
+gastosAgua<-bd %>% group_by(depto) %>% summarise(mean(gastoAgua, na.rm=T))
+sp<-bd %>% group_by(depto) %>% summarise(mean(gastoAgua, na.rm=T))
+
+print("1-Chuquisaca , 2-La Paz , 3-Cochabamba , 4-Oruro, 5-Potosi, 6-Tarija, 7-SantaCruz, 8-Beni, 9-Pando")
+datatable(gastosAgua,rownames = F)
+```
+
+
+# 6 (Spark)
+## Column {data-width=200}
+
+
+### Descripcion
+6) Grafico de una tabla con el Promedio de gasto por Combustible de todos los departamentos de Bolivia. Ademas incluye en el codigo su ejecucion con la libreria SPARK
+
+## Column {data-width=800}
+
+### Gasto promedio por departamento del 'combustible que utiliza' 
+
+```{r}
+bc<-bd %>% select(depto, gastoCombustible)
+gastoCombustible<-bc %>% group_by(depto) %>% summarise(mean(gastoCombustible, na.rm=T))
+sp<-bc %>% group_by(depto) %>% summarise(mean(gastoCombustible, na.rm=T))
+print("1-Chuquisaca , 2-La Paz , 3-Cochabamba , 4-Oruro, 5-Potosi, 6-Tarija, 7-SantaCruz, 8-Beni, 9-Pando")
+
+datatable(gastoCombustible,rownames = F)
+```
+
+
+# 7
+## Column {data-width=800}
+
+### 'Tipo de Combustible que usa para cocinar' segun area
+
+```{r}
+par(mfrow=c(1,2))
+
+#Area Urbana
+bu<-bd %>% select(area,tipoConbustible) %>% filter(area=="1")
+hist(bu$tipoConbustible,main = "Area Urbana",xlab="",sub="1-Leña, 2-Guano, 3-GasLicuado\n4-GasNatural 5-Otro 6-Electricidad\n7-NoCocina", col="#cc00c0")
+#Area Rural
+br<-bd %>% select(area, tipoConbustible) %>% filter(area=="2")
+hist(br$tipoConbustible, main = "Area Rural",xlab="",sub="1-Leña, 2-Guano, 3-GasLicuado\n4-GasNatural 5-Otro 6-Electricidad\n7-NoCocina", col="#cc0055")
+par(mfrow=c(1,1))
+```
+
+## Column {data-width=200}
+
+
+### Descripcion
+7) Dos graficas segun el Area (Urbana y Rural) en donde podemos ver la Frecuencia del tipo de combustible que usan. Para asi poder observar la diferencia de combustibles entre las areas Rurales y Urbanas de toda Bolivia.
+
+
+
+# 8
+## Rows {data-width=200}
+### Descripcion
+
+1-CañeriaDentro<br>
+2-CañeriaFuera<br>
+3-PiletaPublica<br> 
+4-PozoPerforado<br> 
+5-PozoBomba<br> 
+6-PozoSinBomba<br> 
+7-PozoNoCubierto<br> 
+8-Manantial<br> 
+9-Rio<br> 
+10-AguaBotella<br> 
+11-Aguatero<br> 
+12-otro<br>
+ <br>
+ <br>
+ 8) Una grafica que incluye 9 graficas pequeñas de cada departamento de Bolivia que contiene el tipo de acceso del agua en funcion al gasto mensual del Agua.
+  
+
+## Rows {data-width=800}
+### Relacion entre 'De donde proviene el agua' con 'cuanto gasta mensualmente en agua' segun departamento
+
+```{r}
+
+par(mfrow=c(3,3))
+#La Paz
+lp<-bd %>% select(origenAgua,gastoAgua,depto) %>% filter(depto=="1")
+plot(lp$origenAgua, lp$gastoAgua, main = "Chuquisaca",xlab="",col="#cc00c0",ylab="Gasto Mensual AGUA")
+
+#Santa Cruz
+sc<-bd%>% select(origenAgua, gastoAgua,depto) %>% filter(depto=="2")
+plot(sc$origenAgua, sc$gastoAgua, main = "La Paz",pch=19,col="#cc0055",xlab="",ylab="Gasto Mensual AGUA")
+
+#3
+aux<-bd%>% select(origenAgua, gastoAgua,depto) %>% filter(depto=="3")
+plot(aux$origenAgua, aux$gastoAgua, main = "Cochabamba",col="#cc00c0",xlab="",ylab="Gasto Mensual AGUA")
+
+#4
+aux2<-bd%>% select(origenAgua, gastoAgua,depto) %>% filter(depto=="4")
+plot(aux2$origenAgua, aux2$gastoAgua, main = "Oruro",col="#cc0055",pch=19,xlab="",ylab="Gasto Mensual AGUA")
+
+#5
+aux3<-bd%>% select(origenAgua, gastoAgua,depto) %>% filter(depto=="5")
+plot(aux3$origenAgua, aux3$gastoAgua, main = "Potosi",col="#cc00c0",xlab="",ylab="Gasto Mensual AGUA")
+
+#6
+aux4<-bd%>% select(origenAgua, gastoAgua,depto) %>% filter(depto=="6")
+plot(aux4$origenAgua, aux4$gastoAgua, main = "Tarija",col="#cc0055",pch=19,xlab="",ylab="Gasto Mensual AGUA")
+
+#7
+aux5<-bd%>% select(origenAgua, gastoAgua,depto) %>% filter(depto=="7")
+plot(aux5$origenAgua, aux5$gastoAgua, main = "Santa Cruz",col="#cc00c0",xlab="",ylab="Gasto Mensual AGUA")
+
+#8
+aux6<-bd%>% select(origenAgua, gastoAgua,depto) %>% filter(depto=="8")
+plot(aux6$origenAgua, aux6$gastoAgua, main = "Beni",col="#cc0055",pch=19,xlab="",ylab="Gasto Mensual AGUA")
+
+#9
+aux7<-bd%>% select(origenAgua, gastoAgua,depto) %>% filter(depto=="9")
+plot(aux7$origenAgua, aux7$gastoAgua, main = "Pando",col="#cc00c0",xlab="",ylab="Gasto Mensual AGUA")
+
+par(mfrow=c(1,1))
+```
+
+
+# 9
+## Column {data-width=800}
+
+### Porcentaje de personas que 'usan energia electrica' segun area
+
+```{r}
+par(mfrow=c(1,2))
+#Las que si usan
+aux<-bd %>% select(area, energiaElectrica) %>% filter(energiaElectrica=="1")
+t1<-table(aux$area, aux$energiaElectrica)
+p_t1<-prop.table(t1)*100
+pie(p_t1,labels = c("Urbana\n80.96%","Rural\n19.04%"),col = c("#cc00c0","#cc11ff"), main = "SI Tienen electricidad\n en Vivienda")
+
+#las quen no usan
+aux2<-bd %>% select(area, energiaElectrica) %>% filter(energiaElectrica=="2")
+t2<-table(aux2$area, aux2$energiaElectrica)
+p_t2<-prop.table(t2)*100
+pie(p_t2,labels = c("Urbana\n11.07%","Rural\n88.92%"),col = c("#cc00c0","#cc11ff"), main = "NO Tienen electricidad\n en vivienda")
+
+par(mfrow=c(1,1))
+```
+
+## Column {data-width=200}
+
+
+### Descripcion
+9) Dos graficos de torta. El primera grafica de torta muestra el porcentaje de area Rural o Urbana que si tienen acceso a la electricidad en su vivienda. La segunda grafica de torta muestra el porcentaje de area Rural o Urbana que no tienen acceso a la electricidad en su vivienda.
+
+
+# 10
+## Column {data-width=800}
+
+### Porcentaje de Personas con Acceso a internet segun area
+
+```{r}
+par(mfrow=c(1,2))
+#Area Urbana
+bi<-bd %>% select(area,internet) %>% filter(area=="1")
+t1<-table(bi$area, bi$internet)
+p_t1<-prop.table(t1)*100
+pie(p_t1,labels = c("Si \n16.17%","No \n83.82%"),col = c("#cc00c0","#cc11ff"), main = "Area Urbana \n¿Tienen acceso a internet?")
+
+#Area Rural
+bi2<-bd %>% select(area,internet) %>% filter(area=="2")
+t2<-table(bi2$area, bi2$internet)
+p_t2<-prop.table(t2)*100
+pie(p_t2,labels = c("Si \n1.29%","No \n98.70%"),col = c("#cc00c0","#cc11ff"), main = "Area Rural \n¿Tienen acceso a internet?")
+
+par(mfrow=c(1,1))
+```
+
+## Column {data-width=200}
+
+
+### Descripcion
+10) Dos graficos de torta. El Primero muestra el porcentaje de personas en Area Urbana con o sin acceso a internet. La segunda muestra el porcentaje de Personas en Area Rural con o sin acceso a internet.
+
+
+# 11
+## Column {data-width=800}
+
+### 'tipo de desague' por departamento 
+
+```{r}
+par(mfrow=c(3,3))
+#1  
+b1<-bd %>% select(depto,tipoDesague) %>% filter(depto=="1")
+hist(b1$tipoDesague, main = "tipoDesague en Chuquisaca",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc00c0",xlim = c(1,5))
+
+#2
+b2<-bd %>% select(depto,tipoDesague) %>% filter(depto=="2")
+hist(b2$tipoDesague, main = "tipoDesague en La Paz",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc0055",xlim = c(1,5))
+
+#3
+b3<-bd %>% select(depto,tipoDesague) %>% filter(depto=="3")
+hist(b3$tipoDesague, main = "tipoDesague en Cochabamba",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc00c0",xlim = c(1,5))
+
+#4
+b4<-bd %>% select(depto,tipoDesague) %>% filter(depto=="4")
+hist(b4$tipoDesague, main = "tipoDesague en Oruro",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc0055",xlim = c(1,5))
+
+#5
+b5<-bd %>% select(depto,tipoDesague) %>% filter(depto=="5")
+hist(b5$tipoDesague, main = "tipoDesague en Potosi",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc00c0",xlim = c(1,5))
+
+#6
+b6<-bd %>% select(depto,tipoDesague) %>% filter(depto=="6")
+hist(b6$tipoDesague, main = "tipoDesague en Tarija",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc0055",xlim = c(1,5))
+
+#7
+b7<-bd %>% select(depto,tipoDesague) %>% filter(depto=="7")
+hist(b7$tipoDesague, main = "tipoDesague en SantaCruz",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc00c0",xlim = c(1,5))
+
+#8
+b8<-bd %>% select(depto,tipoDesague) %>% filter(depto=="8")
+hist(b8$tipoDesague, main = "tipoDesague en Beni",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc0055",xlim = c(1,5))
+
+#9
+b9<-bd %>% select(depto,tipoDesague) %>% filter(depto=="9")
+hist(b9$tipoDesague, main = "tipoDesague en Pando",xlab="",sub="1-Alcantarillado, 2-CamaraSeptica\n 3-PozoAbsorcion, 4-Superficie\n5-NoSabe", col="#cc00c0",xlim = c(1,5))
+
+par(mfrow=c(1,1))
+```
+
+## Column {data-width=200}
+
+
+### Descripcion
+11) Una grafica que contiene 9 graficas pequeñas de cada departamento de Bolivia con la frecuencia de que tipo de desague utilizan
+
+
+# 12
+## Column {data-width=800}
+
+### Departamentos que usan el servicio publico de recoleccion de basura
+
+```{r}
+basura<-bd %>% select(depto,basura) %>% filter(basura==6)
+t1<-table(basura$depto)
+barplot(t1,main = "Departamentos que SI usan el servicio publico de contenedores",sub="1-Chuquisaca , 2-La Paz , 3-Cochabamba \n 4-Oruro, 5-Potosi, 6-Tarija, 7-SantaCruz, 8-Beni, 9-Pando",col="#cc0055")
+```
+
+## Column {data-width=200}
+
+
+### Descripcion
+12) Grafico de barras en donde podemos observar la frecuencia del uso de servicio de basura segun departamento.
+
+# Conclusiones
+## Column {data-width=1000}
+
+### Conclusiones 
+<br>
+La calidad de vida entre el área urbano y rural difieren mucho. Se puede notar que la calidad de vida del área urbana en mejor y con más comodidades que el área rural, pero eso si con más gastos.<br> Sucede lo mismo con los departamentos, si tomamos en cuenta los servicios básicos donde se puede notar en las graficas aquellos que utilizan y tienen estos servicios de acuerdo a otros departamentos.
+
+
+
